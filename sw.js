@@ -1,5 +1,5 @@
 // Меняй VERSION при каждом изменении файлов приложения, иначе iPad покажет старую версию.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const ASSETS = [
   './',
   'index.html',

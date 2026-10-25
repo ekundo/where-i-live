@@ -2,9 +2,13 @@
 
 // Событие в календаре относится к родителю, если его название подходит под match.
 const PARENTS = {
-  mom: { match: /мам/i, label: 'Мама', at: 'у мамы', to: 'к маме', emoji: '👩🏻‍🦰' },
-  dad: { match: /пап/i, label: 'Папа', at: 'у папы', to: 'к папе', emoji: '👨🏻‍🦳' },
+  mom: { match: /мам/i, label: 'Мама', name: 'мама', at: 'у мамы', to: 'к маме', emoji: '👩🏻‍🦰' },
+  dad: { match: /пап/i, label: 'Папа', name: 'папа', at: 'у папы', to: 'к папе', emoji: '👨🏻‍🦳' },
 };
+
+// День в календаре означает «у кого ночует». В будни смена происходит после школы:
+// новый родитель забирает в PICKUP_TIME. Время в названии события («Папа 12:00») важнее.
+const PICKUP_TIME = '17:30';
 
 const DAYS_SHOWN = 7;                 // карточек после сегодняшнего дня
 const LOOKAHEAD = 45;                 // насколько вперёд искать следующий переезд
@@ -75,10 +79,33 @@ function buildSchedule(events) {
 
   const days = new Map();
   for (const ev of items) {
-    for (let d = ev.s; d < ev.e; d = addDays(d, 1)) days.set(dayKey(d), ev.parent);
+    for (let d = ev.s; d < ev.e; d = addDays(d, 1)) days.set(dayKey(d), { parent: ev.parent, title: ev.title });
   }
   return days;
 }
+
+const parentOn = (days, d) => days.get(dayKey(d))?.parent;
+
+// Смена родителя в день d: от кого, к кому, во сколько и после школы ли.
+function handoverOn(days, d) {
+  const from = parentOn(days, addDays(d, -1));
+  const to = parentOn(days, d);
+  if (!from || !to || from === to) return null;
+  const m = days.get(dayKey(d)).title.match(/\b(\d{1,2})[:.](\d{2})\b/);
+  if (m) return { from, to, time: `${m[1]}:${m[2]}`, school: false };
+  const weekday = d.getDay() >= 1 && d.getDay() <= 5;
+  return { from, to, time: weekday ? PICKUP_TIME : null, school: weekday };
+}
+
+// «Завтра после школы, в 17:30, тебя заберёт папа.»
+function pickupPhrase(h, when) {
+  const name = PARENTS[h.to].name;
+  if (h.school) return `${when} после школы, в ${h.time}, тебя заберёт ${name}.`;
+  if (h.time) return `${when} в ${h.time} тебя заберёт ${name}.`;
+  return `${when} едешь ${PARENTS[h.to].to}.`;
+}
+
+const minutesOf = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
 
 // Демо: стандартный график 2-2-5-5. Пн–Вт мама, Ср–Чт папа,
 // Пт–Вс по очереди; выходные 1–3 января 2027 у мамы.
@@ -141,20 +168,48 @@ async function refresh() {
 // ---------- отрисовка ----------
 
 function hintFor(days, today) {
-  const cur = days.get(dayKey(today));
+  const cur = parentOn(days, today);
   if (!cur) return '';
   let n = 1;
-  while (n < LOOKAHEAD && days.get(dayKey(addDays(today, n))) === cur) n++;
-  const next = days.get(dayKey(addDays(today, n)));
-  if (!next || next === cur) return '';
-
-  const to = PARENTS[next].to;
-  if (n === 1) return `Сегодня последний день ${PARENTS[cur].at}. Завтра едешь ${to}!`;
-
+  while (n < LOOKAHEAD && parentOn(days, addDays(today, n)) === cur) n++;
   const d = addDays(today, n);
+  const h = handoverOn(days, d);
+  if (!h) return '';
+
+  if (n === 1) return pickupPhrase(h, 'Завтра');
   let when = WEEKDAYS_AT[d.getDay()];
   if (n >= 7) when += `, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
-  return `Ещё ${n} ${plural(n, 'ночь', 'ночи', 'ночей')} ${PARENTS[cur].at}. ${cap(when)} едешь ${to}.`;
+  return `Ещё ${n} ${plural(n, 'ночь', 'ночи', 'ночей')} ${PARENTS[cur].at}. ${pickupPhrase(h, cap(when))}`;
+}
+
+// Главная карточка. В день смены до времени, когда забирают, показываем, кто заберёт.
+function renderHero(days, today, hasData) {
+  const who = parentOn(days, today);
+  const h = handoverOn(days, today);
+  const now = new Date();
+  const beforePickup = h && (!h.time || now.getHours() * 60 + now.getMinutes() < minutesOf(h.time));
+
+  let lead = 'Сегодня ты', where, sub = '', hint;
+  if (!who) {
+    where = hasData ? 'спроси у мамы или папы' : 'загружаю расписание…';
+    hint = '';
+  } else if (beforePickup) {
+    if (h.school) { lead = 'После школы тебя заберёт'; where = PARENTS[who].name; sub = `в ${h.time}`; }
+    else if (h.time) { lead = 'Сегодня тебя заберёт'; where = PARENTS[who].name; sub = `в ${h.time}`; }
+    else { lead = 'Сегодня едешь'; where = PARENTS[who].to; }
+    hint = `Утром ты ${PARENTS[h.from].at}, а ночуешь ${PARENTS[h.to].at}.`;
+  } else {
+    where = PARENTS[who].at;
+    hint = hintFor(days, today);
+  }
+
+  $('hero').className = `hero ${who || 'none'}`;
+  $('heroEmoji').textContent = who ? PARENTS[who].emoji : '🤔';
+  $('heroLead').textContent = lead;
+  $('heroWhere').textContent = where;
+  $('heroSub').textContent = sub;
+  $('heroSub').hidden = !sub;
+  $('hint').textContent = hint;
 }
 
 function render() {
@@ -169,21 +224,13 @@ function render() {
   $('todayDow').textContent = `Сегодня ${WEEKDAYS[today.getDay()]}`;
   $('todayDate').textContent = `${today.getDate()} ${MONTHS[today.getMonth()]}`;
 
-  const who = days.get(renderedFor);
-  const hero = $('hero');
-  hero.className = `hero ${who || 'none'}`;
-  $('heroEmoji').textContent = who ? PARENTS[who].emoji : '🤔';
-  $('heroWhere').textContent = who
-    ? PARENTS[who].at
-    : (cache ? 'спроси у мамы или папы' : 'загружаю расписание…');
-  $('hint').textContent = hintFor(days, today);
+  renderHero(days, today, Boolean(cache));
 
   const list = $('days');
   list.textContent = '';
-  let prev = who;
   for (let i = 1; i <= DAYS_SHOWN; i++) {
     const d = addDays(today, i);
-    const p = days.get(dayKey(d));
+    const p = parentOn(days, d);
     const li = document.createElement('li');
     li.className = `day ${p || ''}`;
     li.innerHTML = `
@@ -195,13 +242,13 @@ function render() {
     li.querySelector('.day-num').textContent = d.getDate();
     li.querySelector('.day-mon').textContent = i === 1 ? WEEKDAYS[d.getDay()] : MONTHS[d.getMonth()];
     li.querySelector('.day-who').textContent = p ? `${PARENTS[p].emoji} ${PARENTS[p].label}` : '?';
-    if (p && prev && p !== prev) {
+    const h = handoverOn(days, d);
+    if (h) {
       const badge = document.createElement('span');
       badge.className = 'day-badge';
-      badge.textContent = 'переезд';
+      badge.textContent = h.school ? `🏫 ${h.time}` : h.time ? `⏰ ${h.time}` : 'переезд';
       li.appendChild(badge);
     }
-    prev = p;
     list.appendChild(li);
   }
 
@@ -256,7 +303,7 @@ status.addEventListener('pointercancel', cancelPress);
 // ---------- жизненный цикл ----------
 
 function tick() {
-  if (!$('app').hidden && renderedFor !== dayKey(new Date())) render();
+  if (!$('app').hidden) render();
   if (Date.now() - lastAttempt > REFRESH_MS) refresh();
 }
 
