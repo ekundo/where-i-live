@@ -1,0 +1,182 @@
+:root {
+  --bg: #FFF8EE;
+  --ink: #2B2B2B;
+  --muted: #8A8278;
+
+  --mom: #F28B78;
+  --mom-soft: #FCE3DD;
+  --mom-ink: #7A2618;
+
+  --dad: #6FA8E8;
+  --dad-soft: #DDEBFA;
+  --dad-ink: #12406F;
+
+  --none: #D9D4CC;
+  --none-soft: #EFEBE5;
+  --none-ink: #5A544C;
+
+  --radius: 28px;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+main {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+}
+
+/* Сегодняшняя дата */
+.today { text-align: center; }
+.today-dow {
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 800;
+  line-height: 1.1;
+}
+.today-date {
+  font-size: clamp(24px, 3.6vw, 40px);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Главная карточка */
+.hero {
+  flex: 1;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 4vw, 48px);
+  border-radius: var(--radius);
+  padding: 24px;
+  background: var(--none);
+  color: var(--none-ink);
+}
+.hero.mom { background: var(--mom); color: #fff; }
+.hero.dad { background: var(--dad); color: #fff; }
+
+.hero-emoji { font-size: clamp(96px, 18vw, 200px); line-height: 1; }
+.hero-lead { font-size: clamp(28px, 4vw, 44px); font-weight: 700; opacity: .9; }
+.hero-where {
+  font-size: clamp(64px, 12vw, 150px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.hero.none .hero-where { font-size: clamp(36px, 6vw, 64px); }
+
+.hint {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(24px, 3.4vw, 38px);
+  font-weight: 700;
+  min-height: 1.2em;
+}
+
+/* Следующие дни */
+.days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 12px;
+}
+.day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 6px 12px;
+  border-radius: 20px;
+  border: 3px solid transparent;
+  background: var(--none-soft);
+  color: var(--none-ink);
+}
+.day.mom { background: var(--mom-soft); border-color: var(--mom); color: var(--mom-ink); }
+.day.dad { background: var(--dad-soft); border-color: var(--dad); color: var(--dad-ink); }
+
+.day-dow { font-size: 18px; font-weight: 800; }
+.day-num { font-size: 40px; font-weight: 900; line-height: 1.1; }
+.day-mon { font-size: 14px; font-weight: 600; opacity: .8; }
+.day-who { margin-top: 6px; font-size: 20px; font-weight: 800; white-space: nowrap; }
+.day-badge {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status {
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  padding: 4px;
+}
+.status.warn { color: #B45309; font-weight: 600; }
+
+/* Настройки */
+.setup {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: max(40px, env(safe-area-inset-top)) 24px 24px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.setup h1 { font-size: 34px; margin: 0 0 12px; }
+.setup p { font-size: 18px; line-height: 1.4; }
+.setup input {
+  width: 100%;
+  font: inherit;
+  font-size: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--none);
+  background: #fff;
+  color: var(--ink);
+}
+.setup-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.setup button {
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 14px;
+  border: 0;
+  background: var(--dad);
+  color: #fff;
+}
+.setup button.secondary { background: var(--none-soft); color: var(--ink); }
+.setup-error { color: #B91C1C; font-weight: 600; }
+
+@media (orientation: portrait) {
+  .hero { flex-direction: column; text-align: center; }
+  .days { grid-template-columns: repeat(4, 1fr); row-gap: 20px; }
+  .day-dow { font-size: 22px; }
+  .day-num { font-size: 48px; }
+  .day-mon { font-size: 16px; }
+  .day-who { font-size: 22px; }
+}

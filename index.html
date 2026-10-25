@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Где я живу">
+  <meta name="theme-color" content="#FFF8EE">
+  <title>Где я живу</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="app" hidden>
+    <header class="today">
+      <div class="today-dow" id="todayDow"></div>
+      <div class="today-date" id="todayDate"></div>
+    </header>
+
+    <section class="hero" id="hero">
+      <div class="hero-emoji" id="heroEmoji"></div>
+      <div class="hero-text">
+        <div class="hero-lead">Сегодня ты</div>
+        <div class="hero-where" id="heroWhere"></div>
+      </div>
+    </section>
+
+    <p class="hint" id="hint"></p>
+
+    <ol class="days" id="days"></ol>
+
+    <footer class="status" id="status" title="Удерживай 2 секунды, чтобы открыть настройки"></footer>
+  </main>
+
+  <section class="setup" id="setup" hidden>
+    <h1>Настройка</h1>
+    <p>Вставь ссылку на веб-приложение Google Apps Script (заканчивается на <code>/exec</code>).</p>
+    <input id="srcInput" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+           placeholder="https://script.google.com/macros/s/…/exec">
+    <div class="setup-actions">
+      <button id="saveBtn" type="button">Сохранить</button>
+      <button id="demoBtn" type="button" class="secondary">Демо без календаря</button>
+      <button id="cancelBtn" type="button" class="secondary">Отмена</button>
+    </div>
+    <p class="setup-error" id="setupError"></p>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
