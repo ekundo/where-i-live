@@ -43,6 +43,7 @@ function doGet() {
 
 const MOM_TITLE = 'Мама';
 const DAD_TITLE = 'Папа';
+const SEED_FROM = '2026-10-26';
 const SEED_UNTIL = '2027-08-31';
 
 // Каждая строка: месяц и буквы по дням начиная с 1-го числа (М = мама, П = папа).
@@ -53,6 +54,12 @@ const AGREED = [
   ['2026-12', 'МПППММ ММППППП ММППМММ ММППППП ММПП'],
   ['2027-01', 'МММ ММППППП ММППМММ ММППППП ММППМММ'],
 ];
+
+// Смены в нестандартное время. Время попадает в название события («Папа 17:30»),
+// и приложение показывает его ребёнку. В будни без записи здесь действует 17:30 после школы.
+const PICKUP_TIMES = {
+  '2026-11-21': '17:30',
+};
 
 /** Запусти один раз из редактора Apps Script. Повторный запуск откажется работать, если события уже есть. */
 function seedSchedule() {
@@ -74,6 +81,9 @@ function seedSchedule() {
     days.push({ date: d, who: standardPattern_(d) });
   }
 
+  const from = parseKey_(SEED_FROM);
+  while (days.length && days[0].date < from) days.shift();
+
   const first = days[0].date;
   const afterLast = addDays_(days[days.length - 1].date, 1);
   const existing = cal.getEvents(first, afterLast);
@@ -87,7 +97,9 @@ function seedSchedule() {
     let j = i;
     while (j + 1 < days.length && days[j + 1].who === days[i].who) j++;
     const isMom = days[i].who === 'М';
-    const ev = cal.createAllDayEvent(isMom ? MOM_TITLE : DAD_TITLE, days[i].date, addDays_(days[j].date, 1));
+    const time = PICKUP_TIMES[fmt_(days[i].date, Session.getScriptTimeZone())];
+    const title = (isMom ? MOM_TITLE : DAD_TITLE) + (time ? ' ' + time : '');
+    const ev = cal.createAllDayEvent(title, days[i].date, addDays_(days[j].date, 1));
     ev.setColor(isMom ? CalendarApp.EventColor.PALE_RED : CalendarApp.EventColor.PALE_BLUE);
     created++;
     Utilities.sleep(250); // Google ограничивает частоту создания событий

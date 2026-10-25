@@ -79,7 +79,7 @@ main {
   line-height: 1;
   letter-spacing: -0.02em;
 }
-.hero-sub { margin-top: 8px; font-size: clamp(40px, 6vw, 72px); font-weight: 800; }
+.hero-sub { margin-top: 8px; font-size: clamp(30px, 4.5vw, 52px); font-weight: 800; }
 .hero.none .hero-where { font-size: clamp(36px, 6vw, 64px); }
 
 .hint {

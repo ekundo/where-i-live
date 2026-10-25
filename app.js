@@ -6,9 +6,11 @@ const PARENTS = {
   dad: { match: /пап/i, label: 'Папа', name: 'папа', at: 'у папы', to: 'к папе', emoji: '👨🏻‍🦳' },
 };
 
-// День в календаре означает «у кого ночует». В будни смена происходит после школы:
-// новый родитель забирает в PICKUP_TIME. Время в названии события («Папа 12:00») важнее.
-const PICKUP_TIME = '17:30';
+// День в календаре означает «у кого ночует». В будни смена происходит после школы или вечером,
+// точное время бывает разным, поэтому ребёнку его не показываем. В HANDOVER_UNTIL главный
+// экран переключается с «сегодня тебя заберёт папа» на «ты у папы».
+// Время в названии события («Папа 12:00») показывается как есть.
+const HANDOVER_UNTIL = '21:00';
 
 const DAYS_SHOWN = 7;                 // карточек после сегодняшнего дня
 const LOOKAHEAD = 45;                 // насколько вперёд искать следующий переезд
@@ -94,14 +96,14 @@ function handoverOn(days, d) {
   const m = days.get(dayKey(d)).title.match(/\b(\d{1,2})[:.](\d{2})\b/);
   if (m) return { from, to, time: `${m[1]}:${m[2]}`, school: false };
   const weekday = d.getDay() >= 1 && d.getDay() <= 5;
-  return { from, to, time: weekday ? PICKUP_TIME : null, school: weekday };
+  return { from, to, time: null, school: weekday };
 }
 
-// «Завтра после школы, в 17:30, тебя заберёт папа.»
+// «Завтра после школы тебя заберёт папа.»
 function pickupPhrase(h, when) {
   const name = PARENTS[h.to].name;
-  if (h.school) return `${when} после школы, в ${h.time}, тебя заберёт ${name}.`;
   if (h.time) return `${when} в ${h.time} тебя заберёт ${name}.`;
+  if (h.school) return `${when} ${name} заберёт тебя после школы или вечером.`;
   return `${when} едешь ${PARENTS[h.to].to}.`;
 }
 
@@ -187,15 +189,16 @@ function renderHero(days, today, hasData) {
   const who = parentOn(days, today);
   const h = handoverOn(days, today);
   const now = new Date();
-  const beforePickup = h && (!h.time || now.getHours() * 60 + now.getMinutes() < minutesOf(h.time));
+  const switchAt = h && (h.time || (h.school ? HANDOVER_UNTIL : null));
+  const beforePickup = h && (!switchAt || now.getHours() * 60 + now.getMinutes() < minutesOf(switchAt));
 
   let lead = 'Сегодня ты', where, sub = '', hint;
   if (!who) {
     where = hasData ? 'спроси у мамы или папы' : 'загружаю расписание…';
     hint = '';
   } else if (beforePickup) {
-    if (h.school) { lead = 'После школы тебя заберёт'; where = PARENTS[who].name; sub = `в ${h.time}`; }
-    else if (h.time) { lead = 'Сегодня тебя заберёт'; where = PARENTS[who].name; sub = `в ${h.time}`; }
+    if (h.time) { lead = 'Сегодня тебя заберёт'; where = PARENTS[who].name; sub = `в ${h.time}`; }
+    else if (h.school) { lead = 'Сегодня тебя заберёт'; where = PARENTS[who].name; sub = 'после школы или вечером'; }
     else { lead = 'Сегодня едешь'; where = PARENTS[who].to; }
     hint = `Утром ты ${PARENTS[h.from].at}, а ночуешь ${PARENTS[h.to].at}.`;
   } else {
@@ -246,7 +249,7 @@ function render() {
     if (h) {
       const badge = document.createElement('span');
       badge.className = 'day-badge';
-      badge.textContent = h.school ? `🏫 ${h.time}` : h.time ? `⏰ ${h.time}` : 'переезд';
+      badge.textContent = h.time ? `⏰ ${h.time}` : 'переезд';
       li.appendChild(badge);
     }
     list.appendChild(li);
